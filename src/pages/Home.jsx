@@ -1,11 +1,40 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import LandingImg from '../assets/LandingImage.png'
 import ProjectCard from '../components/ProjectCard'
 import { Card } from 'react-bootstrap'
+import { homeProjectAPI } from '../services/allAPI'
 
 const Home = () => {
-  
+
+  const [allHomeProjects, setAllHomeProjects] = useState([])
+  const navigate = useNavigate()
+
+
+  useEffect(() => {
+    getAllHomeProjects()
+  }, [])
+
+  const getAllHomeProjects = async () => {
+    try {
+      const result = await homeProjectAPI()
+      if (result.status == 200) {
+        setAllHomeProjects(result.data)
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  console.log(allHomeProjects);
+
+
+  const handleProjects = () => {
+    if (sessionStorage.getItem("token")) {
+      navigate('/projects')
+    } else {
+      alert("Please login to get aaccess to our full projects")
+    }
+  }
   return (
     <>
       <div style={{ minHeight: '100vh' }} className="d-flex justify-content-center align-items-center rounded shadow w-100">
@@ -14,7 +43,11 @@ const Home = () => {
             <div className="col-md-6">
               <h1 style={{ fontSize: '80px' }}><i className="fa-brands fa-docker">Project Fair</i></h1>
               <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Perferendis quidem, odit non architecto facilis ipsa voluptatibus quo fugiat delectus accusamus asperiores praesentium, cumque, deleniti hic. Animi sed excepturi temporibus accusantium?</p>
-              <Link to={'/login'} className='btn btn-warning'>START TO EXPLORE</Link>
+              {sessionStorage.getItem("token") ?
+                <Link to={'/dashboard'} className='btn btn-warning'>MANAGE YOUR PROJECTS</Link>
+                :
+                <Link to={'/login'} className='btn btn-warning'>START TO EXPLORE</Link>
+              }
             </div>
             <div className="col-md-6">
               <img className='img-fluid' src={LandingImg} alt="" />
@@ -26,12 +59,17 @@ const Home = () => {
         <h1 className='mb-5'>Explore Our Projects</h1>
         <marquee>
           <div className='d-flex'>
-            <div className="me-5">
-              <ProjectCard />
-            </div>
+            {
+              allHomeProjects?.length > 0 &&
+              allHomeProjects?.map(project => (
+                <div className="me-5">
+                  <ProjectCard  displayData={project}/>
+                </div>
+              ))
+            }
           </div>
         </marquee>
-        <button className='btn btn-link mt-5'>CLICK HERE TO VIEW MORE PROJECTS...</button>
+        <button onClick={handleProjects} className='btn btn-link mt-5'>CLICK HERE TO VIEW MORE PROJECTS...</button>
       </div>
       <div className="d-flex justify-content-center align-items-center flex-column">
         <h1>Our Testimonials</h1>

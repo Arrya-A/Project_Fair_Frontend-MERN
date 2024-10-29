@@ -1,21 +1,76 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import login from '../assets/login.png'
-import { FloatingLabel, Form } from 'react-bootstrap'
-import { Link } from 'react-router-dom'
+import { FloatingLabel, Form, Spinner } from 'react-bootstrap'
+import { Link, useNavigate } from 'react-router-dom'
+import { loginAPI, registerAPI } from '../services/allAPI'
+import { tokenAuthContext } from '../contexts/AuthContext'
 
 const Auth = ({ insideRegister }) => {
+  const { isAuthorised, setIsAuthorised } = useContext(tokenAuthContext)
+  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
   const [userData, setUserData] = useState({
     username: "", email: "", password: ""
   })
   console.log(userData);
 
-  const handleRegister =(e)=>{
+  const handleRegister = async (e) => {
     e.preventDefault()
-    if(userData.username && userData.email && userData.password){
+    if (userData.username && userData.email && userData.password) {
       //api call
-      alert("Api call")
-    }else{
+      try {
+        const result = await registerAPI(userData)
+        console.log(result);
+
+        if (result.status == 200) {
+          alert(`Welcome ${result?.data?.username}... Please Login to Explore our website!!!`)
+          setUserData({ username: "", email: "", password: "" })
+          navigate('/login')
+        } else {
+          if (result.response.status == 406) {
+            alert(result.response.data)
+            setUserData({ username: "", email: "", password: "" })
+
+          }
+        }
+      } catch (err) {
+        console.log(err);
+
+      }
+    } else {
       alert("Please fill the form completely")
+    }
+  }
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    if (userData.email && userData.password) {
+      //api call
+      try {
+        const result = await loginAPI(userData)
+        console.log(result);
+        if (result.status == 200) {
+          sessionStorage.setItem("user", JSON.stringify(result.data.user))
+          sessionStorage.setItem("token", result.data.token)
+          setIsAuthorised(true)
+          setIsLoading(true)
+          setTimeout(() => {
+            setUserData({ username: "", email: "", password: "" })
+            navigate('/')
+            setIsLoading(false)
+          }, 2000);
+        } else {
+          if (result.response.status == 404) {
+            alert(result.response.data)
+          }
+        }
+
+      } catch (err) {
+        console.log(err);
+
+      }
+    } else {
+      alert("Please enter email and password")
     }
   }
 
@@ -39,7 +94,7 @@ const Auth = ({ insideRegister }) => {
                     label="Username"
                     className="mb-3"
                   >
-                    <Form.Control value={userData.username} onChange={e=>setUserData({...userData,username:e.target.value})} type="text" placeholder="username" />
+                    <Form.Control value={userData.username} onChange={e => setUserData({ ...userData, username: e.target.value })} type="text" placeholder="username" />
                   </FloatingLabel>}
 
                 <FloatingLabel
@@ -47,10 +102,10 @@ const Auth = ({ insideRegister }) => {
                   label="Email address"
                   className="mb-3"
                 >
-                  <Form.Control  value={userData.email} onChange={e=>setUserData({...userData,email:e.target.value})} type="email" placeholder="name@example.com" />
+                  <Form.Control value={userData.email} onChange={e => setUserData({ ...userData, email: e.target.value })} type="email" placeholder="name@example.com" />
                 </FloatingLabel>
                 <FloatingLabel controlId="floatingPassword" label="Password">
-                  <Form.Control  value={userData.password} onChange={e=>setUserData({...userData,password:e.target.value})} type="password" placeholder="Password" />
+                  <Form.Control value={userData.password} onChange={e => setUserData({ ...userData, password: e.target.value })} type="password" placeholder="Password" />
                 </FloatingLabel>
 
                 {insideRegister ?
@@ -60,7 +115,12 @@ const Auth = ({ insideRegister }) => {
                   </div>
                   :
                   <div className="mt-3">
-                    <button className='btn btn-primary mb-2'>Login</button>
+                    <button onClick={handleLogin} className='btn btn-primary mb-2'>Login
+                      {isLoading &&
+                        <Spinner animation="border" variant="light" className='ms-1' />
+                      }
+                    </button>
+
                     <p>New User? Click here to <Link to={'/register'}>Register</Link></p>
                   </div>
                 }
